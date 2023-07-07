@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/home/sachanab/zanskar/udpreader/build/build_Debug",
+  "command": "/usr/bin/c++    -g -ggdb3 -fsanitize=address -fno-omit-frame-pointer   -std=c++2a -o CMakeFiles/UdpReader.dir/src/bin/UdpReader.cpp.o -c /home/sachanab/zanskar/udpreader/src/bin/UdpReader.cpp",
+  "file": "/home/sachanab/zanskar/udpreader/src/bin/UdpReader.cpp"
+}
+]

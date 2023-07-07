@@ -1,32 +1,34 @@
-#include <cstdio>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
-#include <unistd.h>
+#include <cstdio>
 #include <functional>
-#include <string>
-#include <stdexcept>
-#include <thread>
 #include <iostream>
+#include <netinet/in.h>
 #include <pcap.h>
+#include <stdexcept>
+#include <string>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <thread>
+#include <unistd.h>
 
 class UdpPacketReader
 {
-public:
-    using PacketHandler = std::function<void(const unsigned char* data, size_t size)>;
+  public:
+    using PacketHandler = std::function<void(const unsigned char *data, size_t size)>;
 
-    UdpPacketReader(const std::string& multicastAddress, uint16_t port, PacketHandler handler)
+    UdpPacketReader(const std::string &multicastAddress, uint16_t port, PacketHandler handler)
         : m_multicastAddress(multicastAddress), m_port(port), m_handler(handler)
     {
         m_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        if (m_sock < 0) {
+        if (m_sock < 0)
+        {
             perror("Failed to create socket");
             throw std::runtime_error("Failed to create socket");
         }
 
         int reuse = 1;
-        if (setsockopt(m_sock, SOL_SOCKET, SO_REUSEADDR, (char *)&reuse, sizeof(reuse)) < 0) {
+        if (setsockopt(m_sock, SOL_SOCKET, SO_REUSEADDR, (char *)&reuse, sizeof(reuse)) < 0)
+        {
             perror("setsockopt failed");
             throw std::runtime_error("Failed to set socket option");
         }
@@ -36,7 +38,8 @@ public:
         localSock.sin_port = htons(port);
         localSock.sin_addr.s_addr = INADDR_ANY;
 
-        if (bind(m_sock, (struct sockaddr*)&localSock, sizeof(localSock)) < 0) {
+        if (bind(m_sock, (struct sockaddr *)&localSock, sizeof(localSock)) < 0)
+        {
             perror("bind failed:");
             throw std::runtime_error("Failed to bind socket");
         }
@@ -47,31 +50,32 @@ public:
             group.imr_multiaddr.s_addr = inet_addr(multicastAddress.c_str());
             group.imr_interface.s_addr = INADDR_ANY;
             int res = setsockopt(m_sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&group, sizeof(group));
-            if (res < 0 ) {
+            if (res < 0)
+            {
                 perror("setsockopt failed");
                 throw std::runtime_error("Failed to join multicast group");
             }
         }
     }
 
-    ~UdpPacketReader()
-    {
-        close(m_sock);
-    }
+    ~UdpPacketReader() { close(m_sock); }
 
-    void receivePackets()
+    void
+    receivePackets()
     {
         unsigned char buffer[65536];
 
-        while (true) {
+        while (true)
+        {
             ssize_t nbytes = recv(m_sock, buffer, sizeof(buffer), 0);
-            if (nbytes > 0) {
+            if (nbytes > 0)
+            {
                 m_handler(buffer, nbytes);
             }
         }
     }
 
-private:
+  private:
     int m_sock;
     uint16_t m_port;
     std::string m_multicastAddress;
@@ -80,27 +84,30 @@ private:
 
 class UdpPcapRelay
 {
-public:
+  public:
     UdpPcapRelay(const std::string &filename, const std::string &destinationAddress, uint16_t destinationPort)
         : m_destinationAddress(destinationAddress), m_destinationPort(destinationPort)
     {
         // open the pcap file
         char errbuf[PCAP_ERRBUF_SIZE];
         m_pcap = pcap_open_offline(filename.c_str(), errbuf);
-        if (m_pcap == nullptr) {
+        if (m_pcap == nullptr)
+        {
             throw std::runtime_error(errbuf);
         }
 
         // create the UDP socket
         m_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        if (m_sock < 0) {
+        if (m_sock < 0)
+        {
             throw std::runtime_error("Failed to create socket");
         }
 
         struct in_addr addr;
         addr.s_addr = inet_addr(destinationAddress.c_str());
         int res = setsockopt(m_sock, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr));
-        if (res < 0 ) {
+        if (res < 0)
+        {
             perror("setsockopt failed");
             throw std::runtime_error("Failed to join multicast group");
         }
@@ -112,13 +119,15 @@ public:
         pcap_close(m_pcap);
     }
 
-    void relayPackets()
+    void
+    relayPackets()
     {
         pcap_loop(m_pcap, -1, handlePacket, reinterpret_cast<u_char *>(this));
     }
 
-private:
-    static void handlePacket(unsigned char *user, const struct pcap_pkthdr *h, const unsigned char *bytes)
+  private:
+    static void
+    handlePacket(unsigned char *user, const struct pcap_pkthdr *h, const unsigned char *bytes)
     {
         UdpPcapRelay *relay = reinterpret_cast<UdpPcapRelay *>(user);
 
@@ -137,7 +146,8 @@ private:
     std::string m_destinationAddress;
 };
 
-void runPcapServer()
+void
+runPcapServer()
 {
     std::string relayFile = "NSE.pcap";
     std::string serverAddr = "192.168.1.4";
@@ -147,16 +157,17 @@ void runPcapServer()
     relayer.relayPackets();
 }
 
-
-void handlePacket(const u_char *data, size_t size)
+void
+handlePacket(const u_char *data, size_t size)
 {
     std::cout << "Recieved:" << size << std::endl;
 }
 
-void runPcapClient()
+void
+runPcapClient()
 {
-    //std::string serverAddr = "239.70.70.41";
-    //uint16_t serverPort = 17741;
+    // std::string serverAddr = "239.70.70.41";
+    // uint16_t serverPort = 17741;
     std::string serverAddr = "192.168.1.4";
     uint16_t serverPort = 22222;
 
@@ -164,7 +175,8 @@ void runPcapClient()
     reader.receivePackets();
 }
 
-int main()
+int
+main()
 {
     std::thread serverThread(runPcapServer);
     std::thread clientThread(runPcapClient);
