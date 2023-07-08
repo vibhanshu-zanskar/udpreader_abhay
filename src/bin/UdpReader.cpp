@@ -58,7 +58,10 @@ class UdpPacketReader
         }
     }
 
-    ~UdpPacketReader() { close(m_sock); }
+    ~UdpPacketReader()
+    {
+        close(m_sock);
+    }
 
     void
     receivePackets()
