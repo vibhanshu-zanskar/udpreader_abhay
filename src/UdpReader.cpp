@@ -1,3 +1,4 @@
+#include "nsetypes.hpp"
 #include <arpa/inet.h>
 #include <cstdio>
 #include <functional>
@@ -11,12 +12,12 @@
 #include <thread>
 #include <unistd.h>
 
-class UdpPacketReader
+class RawUdpPacketReader
 {
   public:
-    using PacketHandler = std::function<void(const unsigned char *data, size_t size)>;
+    using RawPacketHandler = std::function<void(const unsigned char *data, size_t size)>;
 
-    UdpPacketReader(const std::string &multicastAddress, uint16_t port, PacketHandler handler)
+    RawUdpPacketReader(const std::string &multicastAddress, uint16_t port, RawPacketHandler handler)
         : m_multicastAddress(multicastAddress), m_port(port), m_handler(handler)
     {
         m_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -58,7 +59,7 @@ class UdpPacketReader
         }
     }
 
-    ~UdpPacketReader()
+    ~RawUdpPacketReader()
     {
         close(m_sock);
     }
@@ -82,13 +83,13 @@ class UdpPacketReader
     int m_sock;
     uint16_t m_port;
     std::string m_multicastAddress;
-    PacketHandler m_handler;
+    RawPacketHandler m_handler;
 };
 
-class UdpPcapRelay
+class RawUdpPacketServer
 {
   public:
-    UdpPcapRelay(const std::string &filename, const std::string &destinationAddress, uint16_t destinationPort)
+    RawUdpPacketServer(const std::string &filename, const std::string &destinationAddress, uint16_t destinationPort)
         : m_destinationAddress(destinationAddress), m_destinationPort(destinationPort)
     {
         // open the pcap file
@@ -116,7 +117,7 @@ class UdpPcapRelay
         }
     }
 
-    ~UdpPcapRelay()
+    ~RawUdpPacketServer()
     {
         close(m_sock);
         pcap_close(m_pcap);
@@ -125,14 +126,14 @@ class UdpPcapRelay
     void
     relayPackets()
     {
-        pcap_loop(m_pcap, -1, handlePacket, reinterpret_cast<u_char *>(this));
+        pcap_loop(m_pcap, -1, handlePacket, reinterpret_cast<unsigned char *>(this));
     }
 
   private:
     static void
     handlePacket(unsigned char *user, const struct pcap_pkthdr *h, const unsigned char *bytes)
     {
-        UdpPcapRelay *relay = reinterpret_cast<UdpPcapRelay *>(user);
+        RawUdpPacketServer *relay = reinterpret_cast<RawUdpPacketServer *>(user);
 
         // send the packet over the UDP socket
         struct sockaddr_in dest;
@@ -152,16 +153,16 @@ class UdpPcapRelay
 void
 runPcapServer()
 {
-    std::string relayFile = "NSE.pcap";
+    std::string relayFile = "./data/NSE.pcap";
     std::string serverAddr = "192.168.1.4";
     uint16_t serverPort = 22222;
 
-    UdpPcapRelay relayer(relayFile, serverAddr, serverPort);
-    relayer.relayPackets();
+    RawUdpPacketServer rawPacketServer(relayFile, serverAddr, serverPort);
+    rawPacketServer.relayPackets();
 }
 
 void
-handlePacket(const u_char *data, size_t size)
+handlePacket(const unsigned char *data, size_t size)
 {
     std::cout << "Recieved:" << size << std::endl;
 }
@@ -174,8 +175,8 @@ runPcapClient()
     std::string serverAddr = "192.168.1.4";
     uint16_t serverPort = 22222;
 
-    UdpPacketReader reader(serverAddr, serverPort, handlePacket);
-    reader.receivePackets();
+    RawUdpPacketReader rawReader(serverAddr, serverPort, handlePacket);
+    rawReader.receivePackets();
 }
 
 int
