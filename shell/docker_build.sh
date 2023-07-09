@@ -16,5 +16,5 @@ docker run --rm -it -v ${PROJECT_FULL_ROOT}:${PROJECT_FULL_ROOT} \
         --workdir ${PROJECT_FULL_ROOT} \
         --entrypoint "/bin/bash" \
         --user "$(id -u):$(id -g)" \
-        --name titan.titan \
+        --name titan.udpreader \
         titan:focal_boost-1.81_gcc-11_pcap shell/build.sh "$@"
