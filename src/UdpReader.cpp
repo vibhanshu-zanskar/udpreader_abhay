@@ -1,10 +1,16 @@
 #include "nsetypes.hpp"
 #include <arpa/inet.h>
+#include <cassert>
 #include <cstdio>
+#include <cstring>
+#include <filesystem>
 #include <functional>
 #include <iostream>
+#include <net/ethernet.h>
 #include <netinet/in.h>
-#include <pcap.h>
+#include <netinet/ip.h>
+#include <netinet/udp.h>
+#include <pcap/pcap.h>
 #include <stdexcept>
 #include <string>
 #include <sys/socket.h>
@@ -89,7 +95,8 @@ class RawUdpPacketReader
 class RawUdpPacketServer
 {
   public:
-    RawUdpPacketServer(const std::string &filename, const std::string &destinationAddress, uint16_t destinationPort)
+    RawUdpPacketServer(const std::filesystem::path &filename, const std::string &destinationAddress,
+                       uint16_t destinationPort)
         : m_destinationAddress(destinationAddress), m_destinationPort(destinationPort)
     {
         // open the pcap file
@@ -107,14 +114,10 @@ class RawUdpPacketServer
             throw std::runtime_error("Failed to create socket");
         }
 
-        struct in_addr addr;
-        addr.s_addr = inet_addr(destinationAddress.c_str());
-        int res = setsockopt(m_sock, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr));
-        if (res < 0)
-        {
-            perror("setsockopt failed");
-            throw std::runtime_error("Failed to join multicast group");
-        }
+        memset(&destAddr, 0, sizeof(destAddr));
+        destAddr.sin_family = AF_INET;
+        destAddr.sin_port = htons(destinationPort);
+        destAddr.sin_addr.s_addr = inet_addr(destinationAddress.c_str());
     }
 
     ~RawUdpPacketServer()
@@ -126,7 +129,7 @@ class RawUdpPacketServer
     void
     relayPackets()
     {
-        pcap_loop(m_pcap, -1, handlePacket, reinterpret_cast<unsigned char *>(this));
+        pcap_loop(m_pcap, 0, handlePacket, reinterpret_cast<unsigned char *>(this));
     }
 
   private:
@@ -135,58 +138,109 @@ class RawUdpPacketServer
     {
         RawUdpPacketServer *relay = reinterpret_cast<RawUdpPacketServer *>(user);
 
+        size_t headersLen = sizeof(struct ether_header) + sizeof(struct ip) + sizeof(struct udphdr);
+
         // send the packet over the UDP socket
-        struct sockaddr_in dest;
-        dest.sin_family = AF_INET;
-        dest.sin_port = htons(relay->m_destinationPort);
-        dest.sin_addr.s_addr = inet_addr(relay->m_destinationAddress.c_str());
-        sendto(relay->m_sock, bytes, h->caplen, 0, (struct sockaddr *)&dest, sizeof(dest));
-        std::cout << "Sent:" << h->len << std::endl;
+        int res = sendto(relay->m_sock, bytes + headersLen, (h->caplen - headersLen), 0,
+                         (struct sockaddr *)&relay->destAddr, sizeof(destAddr));
+        if (res < 0)
+        {
+            perror("sendto failed");
+            throw std::runtime_error("sendto failed:");
+        }
     }
 
-    int m_sock;
     uint16_t m_destinationPort;
+    int m_sock;
     pcap_t *m_pcap;
     std::string m_destinationAddress;
+    struct sockaddr_in destAddr;
 };
 
 void
-runPcapServer()
+runPcapServer(const std::filesystem::path &pcapFile)
 {
-    std::string relayFile = "./data/NSE.pcap";
-    std::string serverAddr = "192.168.1.4";
+    if (pcapFile.empty())
+    {
+        throw std::runtime_error("Pcap filename not passed");
+    }
+
+    if (!std::filesystem::exists(pcapFile))
+    {
+        throw std::runtime_error("Pcap file doesnt exist");
+    }
+
+    const std::string &serverAddr = "239.69.69.69";
     uint16_t serverPort = 22222;
 
-    RawUdpPacketServer rawPacketServer(relayFile, serverAddr, serverPort);
+    RawUdpPacketServer rawPacketServer(pcapFile, serverAddr, serverPort);
     rawPacketServer.relayPackets();
 }
 
 void
-handlePacket(const unsigned char *data, size_t size)
+handlePacket(const unsigned char *rawPacket, size_t size)
 {
-    std::cout << "Recieved:" << size << std::endl;
+    const StreamPacket *packet = (StreamPacket *)rawPacket;
+    const StreamMsg *msgPtr = (StreamMsg *)(&packet->streamData);
+
+    std::cout << "Msg :" << msgPtr->cMsgType << " size: " << size << std::endl;
+    switch (static_cast<nseMsgType>(msgPtr->cMsgType))
+    {
+    case heartBeatMsg:
+        break;
+    case newOrderMsg:
+        break;
+    case modOrderMsg:
+        break;
+    case cancelOrderMsg:
+        break;
+    case tradeMesg:
+        break;
+    case newSpreadOrderMsg:
+        break;
+    case modSpreadOrderMsg:
+        break;
+    case cancelSpreadOrderMsg:
+        break;
+    case spreadTradeMsg:
+        break;
+    default:
+        std::cout << "Unknown msg:" << static_cast<int8_t>(msgPtr->cMsgType) << " size: " << size << std::endl;
+    }
 }
 
 void
 runPcapClient()
 {
-    // std::string serverAddr = "239.70.70.41";
-    // uint16_t serverPort = 17741;
-    std::string serverAddr = "192.168.1.4";
-    uint16_t serverPort = 22222;
+    std::string serverAddr = "239.70.70.41";
+    uint16_t serverPort = 17741;
+    // std::string serverAddr = "239.69.69.69";
+    // uint16_t serverPort = 22222;
 
     RawUdpPacketReader rawReader(serverAddr, serverPort, handlePacket);
     rawReader.receivePackets();
 }
 
 int
-main()
+main(int argc, const char *argv[])
 {
-    std::thread serverThread(runPcapServer);
+    bool runServer = true;
+    std::thread serverThread;
+    if (argc < 2)
+    {
+        std::cout << "No pcap file to stream" << std::endl;
+        runServer = false;
+    }
+
     std::thread clientThread(runPcapClient);
 
+    if (runServer)
+    {
+        serverThread = std::thread(runPcapServer, argv[1]);
+        serverThread.join();
+    }
+
     clientThread.join();
-    serverThread.join();
 
     return 0;
 }

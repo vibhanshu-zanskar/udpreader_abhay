@@ -4,7 +4,7 @@ project(UdpReader)
 
 # Generate compilation database
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
-#set(CMAKE_VERBOSE_MAKEFILE ON CACHE INTERNAL "")
+set(CMAKE_VERBOSE_MAKEFILE ON CACHE INTERNAL "")
 
 # Force c++20 standard
 set(CMAKE_CXX_STANDARD 20)

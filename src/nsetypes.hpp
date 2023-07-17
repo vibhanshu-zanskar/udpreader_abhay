@@ -1,14 +1,22 @@
+#ifndef _NSE_TYPES_H
+#define _NSE_TYPES_H
 #include <cstdint>
+#include <net/ethernet.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <netinet/udp.h>
 
 static_assert(sizeof(short) == 2, "Type: short size is not 2 bytes");
 static_assert(sizeof(int) == 4, "Type: int size is not 4 bytes");
+
+#define ZNS_GCC_PACKED_ATTRIBUTE __attribute__((packed, aligned(1)))
 
 typedef struct streamHeader
 {
     short msgLen;
     short streamId;
     int seqNo; // For Equity derivative, data type shall be ‘unsigned int’)
-} StreamHeader;
+} ZNS_GCC_PACKED_ATTRIBUTE StreamHeader;
 
 static_assert(sizeof(StreamHeader) == 8, "Type: StreamHeader size is not 8 bytes");
 
@@ -33,30 +41,22 @@ enum nseMsgType : int8_t
     recoveryResponseMsg = 'Y',
 };
 
-typedef struct streamData
-{
-    char cMsgType;
-    char packetData[0];
-} StreamData;
-
-static_assert(sizeof(int8_t) == sizeof(char), "Type: size of int8_t and char are not same");
-
 typedef struct heartBeatData
 {
     int seqNo;
-} HeartBeatData;
+} ZNS_GCC_PACKED_ATTRIBUTE HeartBeatData;
 
 typedef struct tickRecReqData
 {
     short streamID;
     int startSeqNo;
     int endSeqNo;
-} TickRecReqData;
+} ZNS_GCC_PACKED_ATTRIBUTE TickRecReqData;
 
 typedef struct tickRecRspData
 {
     char reqStatus;
-} TickRecRspData;
+} ZNS_GCC_PACKED_ATTRIBUTE TickRecRspData;
 
 typedef struct spreadTradeData
 {
@@ -66,7 +66,7 @@ typedef struct spreadTradeData
     int tokenID;
     int tradePrice;
     int quantity;
-} SpreadTradeData;
+} ZNS_GCC_PACKED_ATTRIBUTE SpreadTradeData;
 
 typedef struct spreadOrderData
 {
@@ -76,7 +76,7 @@ typedef struct spreadOrderData
     char orderType;
     int price;
     int quantity;
-} SpreadOrderData;
+} ZNS_GCC_PACKED_ATTRIBUTE SpreadOrderData;
 
 typedef struct tradeData
 {
@@ -86,7 +86,7 @@ typedef struct tradeData
     int tokenID;
     int tradePrice;
     int quantity;
-} TradeData;
+} ZNS_GCC_PACKED_ATTRIBUTE TradeData;
 
 typedef struct orderData
 {
@@ -96,4 +96,27 @@ typedef struct orderData
     char orderType;
     int price;
     int quantity;
-} orderData;
+} ZNS_GCC_PACKED_ATTRIBUTE OrderData;
+
+typedef struct streamMsg
+{
+    char cMsgType;
+    union
+    {
+        HeartBeatData hbData;
+        TradeData tradeData;
+        OrderData orderData;
+        SpreadOrderData spdOrderData;
+        SpreadTradeData spdTradeData;
+    } p;
+} ZNS_GCC_PACKED_ATTRIBUTE StreamMsg;
+
+static_assert(sizeof(int8_t) == sizeof(char), "Type: size of int8_t and char are not same");
+
+typedef struct streamPacket
+{
+    struct streamHeader streamHdr;
+    struct streamMsg streamData;
+} ZNS_GCC_PACKED_ATTRIBUTE StreamPacket;
+
+#endif // _NSE_TYPES_H
