@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(UdpReader)
+project(nsereader)
 
 # Generate compilation database
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
@@ -16,7 +16,7 @@ string(APPEND CMAKE_CXX_FLAGS_RELWITHDEBINFO " -ggdb3 -fno-omit-frame-pointer")
 string(APPEND CMAKE_CXX_FLAGS_RELEASE " -s")
 
 # Select all sources from src directory
-file(GLOB_RECURSE ${PROJECT_NAME}_SOURCES CONFIGURE_DEPENDS src/*.cpp)
+file(GLOB_RECURSE ${PROJECT_NAME}_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 message("List of source files: ${${PROJECT_NAME}_SOURCES}")
 
 # Add add needed libraries
@@ -25,7 +25,7 @@ include(FindPCAP.cmake)
 #find_package(PCAP REQUIRED)
 find_package(Threads REQUIRED)
 
-add_executable(${PROJECT_NAME} src/UdpReader.cpp)
+add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCES})
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE

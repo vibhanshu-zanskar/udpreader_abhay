@@ -7,8 +7,7 @@
 #include <string_view>
 #include <sys/types.h>
 
-typedef struct streamPortIPInfo
-{
+typedef struct streamPortIPInfo {
   public:
     streamPortIPInfo(short streamID, uint16_t primaryPort, uint16_t secondaryPort, const char *primaryIP,
                      const char *secondaryIP)

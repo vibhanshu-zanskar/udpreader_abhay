@@ -1,4 +1,13 @@
 #include "ipinfo.hpp"
+#include "nsetypes.hpp"
+#include "udpreader.hpp"
+#include <algorithm>
+#include <fstream>
+#include <memory>
+#include <stdexcept>
+#include <vector>
+
+using namespace znsreader;
 
 // FO market tick by tick feeds
 std::map<short, struct streamPortIPInfo> FnOIPInfo{
@@ -20,7 +29,33 @@ std::map<short, struct streamPortIPInfo> FnOIPInfo{
     { 16, streamPortIPInfo(16, 17766, 10876, "239.70.70.66", "239.70.70.76") },
 };
 
-int
-main()
+/*
+ * Idea here is that we should be subscribing to all the sockets in FO feed.
+ */
+int main()
 {
+    std::vector<PacketReader *> readerObjects;
+    std::ofstream logFile("log.txt");
+
+    readerObjects.reserve(FnOIPInfo.size());
+
+    for (auto info : FnOIPInfo) {
+        readerObjects.push_back(new PacketReader(info.second.m_primaryIP, info.second.m_primaryPort));
+        readerObjects.push_back(new PacketReader(info.second.m_secondaryIP, info.second.m_secondaryPort));
+    }
+
+    unsigned char readBuf[65536];
+    for (;;) {
+        for (auto &reader : readerObjects) {
+            ssize_t ret = reader->receivePackets(readBuf, 65536);
+            if (ret < 0) {
+                continue;
+            }
+
+            if (ret > 0) {
+                const StreamPacket *packet = (StreamPacket *)readBuf;
+                logFile << packet->streamHdr.streamId << ":" << packet->streamHdr.seqNo << std::endl;
+            }
+        }
+    }
 }

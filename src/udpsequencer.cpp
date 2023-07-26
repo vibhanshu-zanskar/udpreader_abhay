@@ -12,12 +12,9 @@ PacketSequencer::PacketSequencer(short streamID, const std::string &primaryAddre
       m_lastSeqNo(0),
       m_streamID(streamID)
 {
-    if (primaryAddress == secondaryAddress)
-    {
+    if (primaryAddress == secondaryAddress) {
         throw std::runtime_error("Primary and secondary address cant be same");
-    }
-    else if (primaryPort == secondaryPort)
-    {
+    } else if (primaryPort == secondaryPort) {
         throw std::runtime_error("Primary and secondary port cant be same");
     }
 }
@@ -26,8 +23,7 @@ PacketSequencer::~PacketSequencer()
 {
 }
 
-ssize_t
-PacketSequencer::rcvSequencedPackets(unsigned char *buf, size_t bufLen)
+ssize_t PacketSequencer::rcvSequencedPackets(unsigned char *buf, size_t bufLen)
 {
     return m_primaryReader.receivePackets(buf, bufLen);
 }
