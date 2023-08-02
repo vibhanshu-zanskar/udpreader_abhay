@@ -37,5 +37,6 @@ cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../..
 make
 popd
 
-scp $BUILD_DIR/nsereader abhay@65.109.113.208:~/udpreader/
-ssh abhay@65.109.113.208 "scp -P 64131 ~/udpreader/nsereader estee@42.104.66.75:~/abhay/"
+cp $BUILD_DIR/nsereader .
+#scp $BUILD_DIR/nsereader abhay@65.109.113.208:~/udpreader/
+#ssh -t abhay@65.109.113.208 "scp -P 64131 ~/udpreader/nsereader estee@42.104.66.75:~/abhay/"

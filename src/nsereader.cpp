@@ -2,15 +2,20 @@
 #include "nsetypes.hpp"
 #include "udpreader.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <cstdio>
 #include <fstream>
+#include <iostream>
 #include <memory>
+#include <pthread.h>
 #include <stdexcept>
+#include <thread>
 #include <vector>
 
 using namespace znsreader;
 
 // FO market tick by tick feeds
-std::map<short, struct streamPortIPInfo> FnOIPInfo{
+std::map<short, StreamPortIPInfo> FnOIPInfo{
     { 1, streamPortIPInfo(1, 17741, 10831, "239.70.70.41", "239.70.70.31") },
     { 2, streamPortIPInfo(2, 17742, 10832, "239.70.70.42", "239.70.70.32") },
     { 3, streamPortIPInfo(3, 17743, 10833, "239.70.70.43", "239.70.70.33") },
@@ -29,33 +34,70 @@ std::map<short, struct streamPortIPInfo> FnOIPInfo{
     { 16, streamPortIPInfo(16, 17766, 10876, "239.70.70.66", "239.70.70.76") },
 };
 
+int setThreadAffinity(std::thread &targetThread, int32_t cpuCore)
+{
+    if (cpuCore < 0) {
+        return -1;
+    }
+
+    cpu_set_t my_set;
+    CPU_ZERO(&my_set);
+    CPU_SET(cpuCore, &my_set);
+
+    int rc = pthread_setaffinity_np(targetThread.native_handle(), sizeof(cpu_set_t), &my_set);
+    if (rc != 0) {
+        perror("pthread_setaffinity_np error:");
+    }
+
+    return rc;
+}
+
+void processPackets(const unsigned char *buf, std::size_t bufLen)
+{
+}
+
+/*
+ *
+ */
+void tryPacketWriter()
+{
+    unsigned char buf[131072];
+
+    AggregatedPacketReader packetReader(FnOIPInfo, processPackets);
+
+    packetReader.receivePackets(buf, 131072, true);
+}
+
+/*
+ * Create epoll objects and try to get packets.
+ */
+void tryPacketReader()
+{
+    while (true) {
+    }
+}
+
 /*
  * Idea here is that we should be subscribing to all the sockets in FO feed.
  */
 int main()
 {
-    std::vector<PacketReader *> readerObjects;
-    std::ofstream logFile("log.txt");
+    std::thread readerThread;
+    std::thread writerThread;
 
-    readerObjects.reserve(FnOIPInfo.size());
+    readerThread = std::thread(tryPacketReader);
+    writerThread = std::thread(tryPacketWriter);
 
-    for (auto info : FnOIPInfo) {
-        readerObjects.push_back(new PacketReader(info.second.m_primaryIP, info.second.m_primaryPort));
-        readerObjects.push_back(new PacketReader(info.second.m_secondaryIP, info.second.m_secondaryPort));
+    int ret = setThreadAffinity(writerThread, 0);
+    if (ret < 0) {
+        throw std::runtime_error("writer setaffinity error:");
     }
 
-    unsigned char readBuf[65536];
-    for (;;) {
-        for (auto &reader : readerObjects) {
-            ssize_t ret = reader->receivePackets(readBuf, 65536);
-            if (ret < 0) {
-                continue;
-            }
-
-            if (ret > 0) {
-                const StreamPacket *packet = (StreamPacket *)readBuf;
-                logFile << packet->streamHdr.streamId << ":" << packet->streamHdr.seqNo << std::endl;
-            }
-        }
+    ret = setThreadAffinity(readerThread, 1);
+    if (ret < 0) {
+        throw std::runtime_error("reader setaffinity error:");
     }
+
+    writerThread.join();
+    readerThread.join();
 }
