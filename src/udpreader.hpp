@@ -2,6 +2,7 @@
 #define __UDP_READER_H
 
 #include "ipinfo.hpp"
+#include "ringbuffer.hpp"
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -35,25 +36,22 @@ class PacketReader
 class AggregatedPacketReader
 {
   public:
-    using PacketHandler = std::function<void(const unsigned char *data, size_t size)>;
-
     AggregatedPacketReader() = delete;
-    AggregatedPacketReader(const std::map<short, StreamPortIPInfo> &, PacketHandler);
+    AggregatedPacketReader(const std::map<short, StreamPortIPInfo> &, RingBuffer::WriterCallBack,
+                           RingBuffer::ReaderCallBack);
     ~AggregatedPacketReader();
-    ssize_t receivePackets(unsigned char *buf, size_t bufLen, bool useBuf);
+    void write_packets_to_ringbuf();
+    void read_packets_from_ringbuf();
 
     AggregatedPacketReader(const AggregatedPacketReader &) = delete;
     AggregatedPacketReader &operator=(AggregatedPacketReader const &) = delete;
-
-    AggregatedPacketReader(AggregatedPacketReader &&) = default;
-    AggregatedPacketReader &operator=(AggregatedPacketReader &&) = default;
 
   private:
     int CreateUDPSocket(const std::string_view &ipv4Addr, uint16_t udpPort);
 
     int m_epollfd;
     std::vector<int> m_sockets;
-    PacketHandler m_handler;
+    RingBuffer m_spsc_buffer;
 };
 }
 

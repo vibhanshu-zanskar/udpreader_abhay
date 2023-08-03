@@ -25,7 +25,7 @@ RingBuffer::RingBuffer(std::size_t max_size, bool use_huge_pages, WriterCallBack
         }
     } else {
         // TODO : posix_memalign?
-        m_start = ::malloc(m_max_size);
+        m_start = ::malloc(rounded_size);
         if (m_start == nullptr) {
             throw std::runtime_error("Failed to malloc");
         }
@@ -39,10 +39,14 @@ RingBuffer::RingBuffer(std::size_t max_size, bool use_huge_pages, WriterCallBack
 
 RingBuffer::~RingBuffer()
 {
-    ::munmap((void *)m_start, m_allocated_size);
+    if (m_use_huge_pages) {
+        ::munmap((void *)m_start, m_allocated_size);
+    } else {
+        ::free(m_start);
+    }
 }
 
-std::size_t RingBuffer::push(std::size_t max_bytes)
+std::size_t RingBuffer::push(int fd, std::size_t max_bytes)
 {
     const size_t write_index = m_write_index.load(std::memory_order_relaxed);
     const size_t read_index = m_read_index.load(std::memory_order_acquire);
@@ -55,21 +59,24 @@ std::size_t RingBuffer::push(std::size_t max_bytes)
     size_t new_write_index = write_index + max_bytes;
 
     if (new_write_index > m_max_size) {
-        std::size_t first_chunk_bytes = m_writer(((unsigned char *)m_start + write_index), (m_max_size - write_index));
+        size_t written_bytes = m_writer(fd, (unsigned char *)m_start + write_index, 131072);
 
-        if (first_chunk_bytes == (m_max_size - write_index)) {
-            std::size_t second_chunk_bytes = m_writer(((unsigned char *)m_start), (max_bytes - first_chunk_bytes));
-            new_write_index = second_chunk_bytes;
+        if ((written_bytes + write_index) > m_max_size) {
+            const size_t count0 = m_max_size - write_index;
+            const size_t count1 = written_bytes - count0;
+
+            ::memmove(m_start, (unsigned char *)m_end, count1);
+            new_write_index = count1;
         } else {
-            new_write_index = write_index + first_chunk_bytes;
+            new_write_index = write_index + written_bytes;
         }
     } else {
-        std::size_t writtenBytes = m_writer(((unsigned char *)m_start + write_index), max_bytes);
+        std::size_t written_bytes = m_writer(fd, ((unsigned char *)m_start + write_index), max_bytes);
 
-        if ((writtenBytes + write_index) == m_max_size) {
+        if ((written_bytes + write_index) == m_max_size) {
             new_write_index = 0;
         } else {
-            new_write_index = write_index + writtenBytes;
+            new_write_index = write_index + written_bytes;
         }
     }
 
@@ -92,7 +99,6 @@ std::size_t RingBuffer::pop_all()
     size_t new_read_index = read_index + output_count;
 
     if (new_read_index > m_max_size) {
-        /* copy data in two sections */
         const size_t count0 = m_max_size - read_index;
         const size_t count1 = output_count - count0;
 

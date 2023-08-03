@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <fstream>
 #include <iostream>
+#include <math.h>
 #include <memory>
 #include <pthread.h>
 #include <stdexcept>
@@ -52,29 +53,52 @@ int setThreadAffinity(std::thread &targetThread, int32_t cpuCore)
     return rc;
 }
 
-void processPackets(const unsigned char *buf, std::size_t bufLen)
+size_t socket_to_ringbuf_writer(int fd, unsigned char *buf, std::size_t bufLen)
 {
+    ssize_t read_bytes = recv(fd, buf, bufLen, 0);
+    if (read_bytes < 0) {
+        return 0;
+    }
+
+    return read_bytes;
+}
+
+std::ofstream logFile("logs.txt");
+
+size_t ringbuf_packer_processor(const unsigned char *buf, std::size_t bufLen)
+{
+    const unsigned char *packet = nullptr;
+
+    for (packet = buf; packet < (buf + bufLen);) {
+        const StreamPacket *full_packet = (StreamPacket *)packet;
+        const StreamMsg *msgPtr = (StreamMsg *)(&full_packet->streamData);
+
+        logFile << full_packet->streamHdr.streamId << ":" << full_packet->streamHdr.seqNo << std::endl;
+        if (full_packet->streamHdr.msgLen > 0) {
+            packet += full_packet->streamHdr.msgLen;
+        } else {
+            exit(-1);
+            break;
+        }
+    }
+
+    return (buf - packet);
 }
 
 /*
  *
  */
-void tryPacketWriter()
+void tryPacketWriter(AggregatedPacketReader &packetReader)
 {
-    unsigned char buf[131072];
-
-    AggregatedPacketReader packetReader(FnOIPInfo, processPackets);
-
-    packetReader.receivePackets(buf, 131072, true);
+    packetReader.write_packets_to_ringbuf();
 }
 
 /*
  * Create epoll objects and try to get packets.
  */
-void tryPacketReader()
+void tryPacketReader(AggregatedPacketReader &packetReader)
 {
-    while (true) {
-    }
+    packetReader.read_packets_from_ringbuf();
 }
 
 /*
@@ -84,9 +108,10 @@ int main()
 {
     std::thread readerThread;
     std::thread writerThread;
+    AggregatedPacketReader packetReader(FnOIPInfo, socket_to_ringbuf_writer, ringbuf_packer_processor);
 
-    readerThread = std::thread(tryPacketReader);
-    writerThread = std::thread(tryPacketWriter);
+    readerThread = std::thread(tryPacketReader, std::ref(packetReader));
+    writerThread = std::thread(tryPacketWriter, std::ref(packetReader));
 
     int ret = setThreadAffinity(writerThread, 0);
     if (ret < 0) {

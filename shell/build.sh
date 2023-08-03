@@ -38,5 +38,13 @@ make
 popd
 
 cp $BUILD_DIR/nsereader .
-#scp $BUILD_DIR/nsereader abhay@65.109.113.208:~/udpreader/
-#ssh -t abhay@65.109.113.208 "scp -P 64131 ~/udpreader/nsereader estee@42.104.66.75:~/abhay/"
+
+COPY_TO_ESTEE=false
+if [ $# -gt 1 ]; then
+    COPY_TO_ESTEE=$2
+fi
+
+if [ "${COPY_TO_ESTEE}" == true ]; then
+    scp $BUILD_DIR/nsereader abhay@65.109.113.208:~/udpreader/
+    ssh -t abhay@65.109.113.208 "scp -P 64131 ~/udpreader/nsereader estee@42.104.66.75:~/abhay/"
+fi

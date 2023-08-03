@@ -12,15 +12,14 @@ namespace znsreader
 {
 class RingBuffer
 {
-    using WriterCallBack = std::function<::size_t(unsigned char *data, size_t size)>;
-    using ReaderCallBack = std::function<::size_t(const unsigned char *data, size_t size)>;
-
   public:
+    using WriterCallBack = std::function<::size_t(int fd, unsigned char *data, size_t size)>;
+    using ReaderCallBack = std::function<::size_t(const unsigned char *data, size_t size)>;
     RingBuffer() = delete;
     RingBuffer(std::size_t max_size, bool use_huge_pages, WriterCallBack writer_fn, ReaderCallBack reader_fn);
     ~RingBuffer();
     ::ssize_t free_space();
-    std::size_t push(std::size_t max_bytes);
+    std::size_t push(int fd, std::size_t max_bytes);
     std::size_t pop_all();
 
   protected:
@@ -52,14 +51,14 @@ class RingBuffer
         }
 
         // TODO : Find a way to include ARG_MAX
-        return ((max_size) + (page_size - 1)) & ~(page_size - 1);
+        return ((max_size + 131072) + (page_size - 1)) & ~(page_size - 1);
     }
 
   private:
     alignas(64) std::atomic<size_t> m_read_index;
     ReaderCallBack m_reader;
     WriterCallBack m_writer;
-    volatile void *m_start;
+    void *m_start;
     void *m_end;
     size_t m_max_size;
     size_t m_allocated_size;

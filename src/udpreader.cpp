@@ -1,7 +1,9 @@
 #include "udpreader.hpp"
+#include "ringbuffer.hpp"
 #include <arpa/inet.h>
 #include <asm-generic/errno-base.h>
 #include <cerrno>
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <functional>
@@ -11,6 +13,7 @@
 #include <stdexcept>
 #include <sys/epoll.h>
 #include <sys/socket.h>
+#include <thread>
 #include <unistd.h>
 
 namespace znsreader
@@ -73,8 +76,9 @@ ssize_t PacketReader::receivePackets(unsigned char *buf, size_t bufLen)
 namespace znsreader
 {
 AggregatedPacketReader::AggregatedPacketReader(const std::map<short, StreamPortIPInfo> &streamInfo,
-                                               PacketHandler handler)
-    : m_handler(handler)
+                                               RingBuffer::WriterCallBack writer_fn,
+                                               RingBuffer::ReaderCallBack reader_fn)
+    : m_spsc_buffer(1024 * 1024 * 1024, true, writer_fn, reader_fn)
 {
     for (auto &oneStreamInfo : streamInfo) {
         int pSocket = CreateUDPSocket(oneStreamInfo.second.m_primaryIP, oneStreamInfo.second.m_primaryPort);
@@ -96,24 +100,22 @@ AggregatedPacketReader::AggregatedPacketReader(const std::map<short, StreamPortI
 
     // Setup epoll structures.
     {
+        struct epoll_event ev;
+        ev.events = EPOLLIN;
+
         m_epollfd = epoll_create1(0);
         if (m_epollfd < 0) {
             perror("epoll_create1 error:");
             throw std::runtime_error("epoll_create1 error");
         }
 
-        {
-            struct epoll_event ev;
-            ev.events = EPOLLIN;
+        for (auto &udpSocket : m_sockets) {
+            ev.data.fd = udpSocket;
 
-            for (auto &udpSocket : m_sockets) {
-                ev.data.fd = udpSocket;
-
-                int ret = epoll_ctl(m_epollfd, EPOLL_CTL_ADD, udpSocket, &ev);
-                if (ret < 0) {
-                    perror("epoll_ctl error:");
-                    throw std::runtime_error("epoll_ctl error");
-                }
+            int ret = epoll_ctl(m_epollfd, EPOLL_CTL_ADD, udpSocket, &ev);
+            if (ret < 0) {
+                perror("epoll_ctl error:");
+                throw std::runtime_error("epoll_ctl error");
             }
         }
     }
@@ -130,13 +132,11 @@ AggregatedPacketReader::~AggregatedPacketReader()
     m_sockets.clear();
 }
 
-ssize_t AggregatedPacketReader::receivePackets(unsigned char *buf, size_t bufLen, bool useBuf)
+void AggregatedPacketReader::write_packets_to_ringbuf()
 {
     struct epoll_event eventList[1024];
-    struct timespec epollTimeout;
-    unsigned char *local_buffer = buf;
-    size_t local_buflen = bufLen;
 
+    struct timespec epollTimeout;
     epollTimeout.tv_nsec = 10;
     epollTimeout.tv_sec = 0;
 
@@ -146,27 +146,19 @@ ssize_t AggregatedPacketReader::receivePackets(unsigned char *buf, size_t bufLen
             perror("epoll_wait error:");
             throw std::runtime_error("epoll_wait error");
         } else {
-            local_buffer = buf;
-            local_buflen = bufLen;
             for (int i = 0; i < activeFds; i++) {
-                ssize_t rdSize = recv(eventList[i].data.fd, buf, bufLen, 0);
-                if (rdSize < 0) {
-                    perror("recv error:");
-                    throw std::runtime_error("recv error");
-                }
-
-                if (rdSize > 0) {
-
-                    std::cout << "Read : " << rdSize << std::endl;
-                    // NOTE : rdSize can be zero.
-                    local_buffer += rdSize;
-                    local_buflen -= rdSize;
+                while (m_spsc_buffer.push(eventList[i].data.fd, 131072) == 0) {
                 }
             }
+        }
+    }
+}
 
-            if (m_handler && activeFds > 0) {
-                m_handler(buf, bufLen);
-            }
+void AggregatedPacketReader::read_packets_from_ringbuf()
+{
+    for (;;) {
+        while (m_spsc_buffer.pop_all() != 0) {
+            std::this_thread::sleep_for(std::chrono::microseconds(10));
         }
     }
 }

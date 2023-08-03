@@ -1,32 +1,37 @@
 [
 {
   "directory": "/home/asachan/zanskar/udpreader/build/build_Debug",
-  "command": "/usr/bin/c++  -I/home/asachan/zanskar/udpreader/src -I/home/asachan/zanskar/udpreader/include -g -ggdb3 -fsanitize=address -fno-omit-frame-pointer -std=c++20 -o CMakeFiles/nsereader.dir/src/nsereader.cpp.o -c /home/asachan/zanskar/udpreader/src/nsereader.cpp",
+  "command": "/usr/bin/c++  -I/home/asachan/zanskar/udpreader/src -I/home/asachan/zanskar/udpreader/include -g -O0 -ggdb3 -fsanitize=address -fno-omit-frame-pointer -std=c++20 -o CMakeFiles/nsereader.dir/src/nsereader.cpp.o -c /home/asachan/zanskar/udpreader/src/nsereader.cpp",
   "file": "/home/asachan/zanskar/udpreader/src/nsereader.cpp"
 },
 {
   "directory": "/home/asachan/zanskar/udpreader/build/build_Debug",
-  "command": "/usr/bin/c++  -I/home/asachan/zanskar/udpreader/src -I/home/asachan/zanskar/udpreader/include -g -ggdb3 -fsanitize=address -fno-omit-frame-pointer -std=c++20 -o CMakeFiles/nsereader.dir/src/nsereader_test.cpp.o -c /home/asachan/zanskar/udpreader/src/nsereader_test.cpp",
+  "command": "/usr/bin/c++  -I/home/asachan/zanskar/udpreader/src -I/home/asachan/zanskar/udpreader/include -g -O0 -ggdb3 -fsanitize=address -fno-omit-frame-pointer -std=c++20 -o CMakeFiles/nsereader.dir/src/nsereader_test.cpp.o -c /home/asachan/zanskar/udpreader/src/nsereader_test.cpp",
   "file": "/home/asachan/zanskar/udpreader/src/nsereader_test.cpp"
 },
 {
   "directory": "/home/asachan/zanskar/udpreader/build/build_Debug",
-  "command": "/usr/bin/c++  -I/home/asachan/zanskar/udpreader/src -I/home/asachan/zanskar/udpreader/include -g -ggdb3 -fsanitize=address -fno-omit-frame-pointer -std=c++20 -o CMakeFiles/nsereader.dir/src/pcap_handler.cpp.o -c /home/asachan/zanskar/udpreader/src/pcap_handler.cpp",
+  "command": "/usr/bin/c++  -I/home/asachan/zanskar/udpreader/src -I/home/asachan/zanskar/udpreader/include -g -O0 -ggdb3 -fsanitize=address -fno-omit-frame-pointer -std=c++20 -o CMakeFiles/nsereader.dir/src/pcap_handler.cpp.o -c /home/asachan/zanskar/udpreader/src/pcap_handler.cpp",
   "file": "/home/asachan/zanskar/udpreader/src/pcap_handler.cpp"
 },
 {
   "directory": "/home/asachan/zanskar/udpreader/build/build_Debug",
-  "command": "/usr/bin/c++  -I/home/asachan/zanskar/udpreader/src -I/home/asachan/zanskar/udpreader/include -g -ggdb3 -fsanitize=address -fno-omit-frame-pointer -std=c++20 -o CMakeFiles/nsereader.dir/src/pcapreader.cpp.o -c /home/asachan/zanskar/udpreader/src/pcapreader.cpp",
+  "command": "/usr/bin/c++  -I/home/asachan/zanskar/udpreader/src -I/home/asachan/zanskar/udpreader/include -g -O0 -ggdb3 -fsanitize=address -fno-omit-frame-pointer -std=c++20 -o CMakeFiles/nsereader.dir/src/pcapreader.cpp.o -c /home/asachan/zanskar/udpreader/src/pcapreader.cpp",
   "file": "/home/asachan/zanskar/udpreader/src/pcapreader.cpp"
 },
 {
   "directory": "/home/asachan/zanskar/udpreader/build/build_Debug",
-  "command": "/usr/bin/c++  -I/home/asachan/zanskar/udpreader/src -I/home/asachan/zanskar/udpreader/include -g -ggdb3 -fsanitize=address -fno-omit-frame-pointer -std=c++20 -o CMakeFiles/nsereader.dir/src/udpreader.cpp.o -c /home/asachan/zanskar/udpreader/src/udpreader.cpp",
+  "command": "/usr/bin/c++  -I/home/asachan/zanskar/udpreader/src -I/home/asachan/zanskar/udpreader/include -g -O0 -ggdb3 -fsanitize=address -fno-omit-frame-pointer -std=c++20 -o CMakeFiles/nsereader.dir/src/ringbuffer.cpp.o -c /home/asachan/zanskar/udpreader/src/ringbuffer.cpp",
+  "file": "/home/asachan/zanskar/udpreader/src/ringbuffer.cpp"
+},
+{
+  "directory": "/home/asachan/zanskar/udpreader/build/build_Debug",
+  "command": "/usr/bin/c++  -I/home/asachan/zanskar/udpreader/src -I/home/asachan/zanskar/udpreader/include -g -O0 -ggdb3 -fsanitize=address -fno-omit-frame-pointer -std=c++20 -o CMakeFiles/nsereader.dir/src/udpreader.cpp.o -c /home/asachan/zanskar/udpreader/src/udpreader.cpp",
   "file": "/home/asachan/zanskar/udpreader/src/udpreader.cpp"
 },
 {
   "directory": "/home/asachan/zanskar/udpreader/build/build_Debug",
-  "command": "/usr/bin/c++  -I/home/asachan/zanskar/udpreader/src -I/home/asachan/zanskar/udpreader/include -g -ggdb3 -fsanitize=address -fno-omit-frame-pointer -std=c++20 -o CMakeFiles/nsereader.dir/src/udpsequencer.cpp.o -c /home/asachan/zanskar/udpreader/src/udpsequencer.cpp",
+  "command": "/usr/bin/c++  -I/home/asachan/zanskar/udpreader/src -I/home/asachan/zanskar/udpreader/include -g -O0 -ggdb3 -fsanitize=address -fno-omit-frame-pointer -std=c++20 -o CMakeFiles/nsereader.dir/src/udpsequencer.cpp.o -c /home/asachan/zanskar/udpreader/src/udpsequencer.cpp",
   "file": "/home/asachan/zanskar/udpreader/src/udpsequencer.cpp"
 }
 ]

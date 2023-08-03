@@ -11,8 +11,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-string(APPEND CMAKE_CXX_FLAGS_DEBUG " -O0 -ggdb3 -fsanitize=address -fno-omit-frame-pointer")
-string(APPEND CMAKE_CXX_FLAGS_RELWITHDEBINFO " -ggdb3 -fno-omit-frame-pointer -fsanitize=thread")
+string(APPEND CMAKE_CXX_FLAGS_DEBUG " -O0 -ggdb3 -fno-omit-frame-pointer -fsanitize=address")
+string(APPEND CMAKE_CXX_FLAGS_RELWITHDEBINFO " -ggdb3 -fno-omit-frame-pointer")
 string(APPEND CMAKE_CXX_FLAGS_RELEASE " -s")
 
 # Select all sources from src directory
