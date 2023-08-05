@@ -1,3 +1,6 @@
+#ifndef __SUBSCRIPTION_MGR_H
+#define __SUBSCRIPTION_MGR_H
+
 #include "udpsequencer.hpp"
 #include <functional>
 #include <vector>
@@ -18,3 +21,5 @@ class PacketSubscriptonManager
     int m_epollFd;
 };
 }
+
+#endif

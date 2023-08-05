@@ -102,11 +102,13 @@ std::size_t RingBuffer::pop_all()
         const size_t count0 = m_max_size - read_index;
         const size_t count1 = output_count - count0;
 
+        // TODO : make one at begining and cache.
         void *temp_buffer = ::malloc(count0 + count1);
         ::memcpy(temp_buffer, (unsigned char *)m_start + read_index, count0);
         ::memcpy((unsigned char *)temp_buffer + count0, (const unsigned char *)m_start, count1);
 
         m_reader((const unsigned char *)temp_buffer, (count0 + count1));
+        ::free(temp_buffer);
 
         new_read_index -= m_max_size;
     } else {

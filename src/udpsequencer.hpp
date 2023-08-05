@@ -1,3 +1,6 @@
+#ifndef __PACKET_SEQUENCER_H
+#define __PACKET_SEQUENCER_H
+
 #include "udpreader.hpp"
 #include <atomic>
 #include <sys/types.h>
@@ -19,3 +22,4 @@ class PacketSequencer
     PacketReader m_secondaryReader;
 };
 }
+#endif

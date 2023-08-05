@@ -1,5 +1,6 @@
 #include "ipinfo.hpp"
 #include "nsetypes.hpp"
+#include "pcapwriter.hpp"
 #include "udpreader.hpp"
 #include <algorithm>
 #include <cstddef>
@@ -63,9 +64,7 @@ size_t socket_to_ringbuf_writer(int fd, unsigned char *buf, std::size_t bufLen)
     return read_bytes;
 }
 
-std::ofstream logFile("logs.txt");
-
-size_t ringbuf_packer_processor(const unsigned char *buf, std::size_t bufLen)
+size_t ringbuf_packet_processor(const unsigned char *buf, std::size_t bufLen)
 {
     const unsigned char *packet = nullptr;
 
@@ -73,7 +72,6 @@ size_t ringbuf_packer_processor(const unsigned char *buf, std::size_t bufLen)
         const StreamPacket *full_packet = (StreamPacket *)packet;
         const StreamMsg *msgPtr = (StreamMsg *)(&full_packet->streamData);
 
-        logFile << full_packet->streamHdr.streamId << ":" << full_packet->streamHdr.seqNo << std::endl;
         if (full_packet->streamHdr.msgLen > 0) {
             packet += full_packet->streamHdr.msgLen;
         } else {
@@ -98,6 +96,8 @@ void tryPacketWriter(AggregatedPacketReader &packetReader)
  */
 void tryPacketReader(AggregatedPacketReader &packetReader)
 {
+    PacketToFileWriter pcap_writer(FnOIPInfo, true, false);
+
     packetReader.read_packets_from_ringbuf();
 }
 
@@ -108,7 +108,7 @@ int main()
 {
     std::thread readerThread;
     std::thread writerThread;
-    AggregatedPacketReader packetReader(FnOIPInfo, socket_to_ringbuf_writer, ringbuf_packer_processor);
+    AggregatedPacketReader packetReader(FnOIPInfo, socket_to_ringbuf_writer, ringbuf_packet_processor);
 
     readerThread = std::thread(tryPacketReader, std::ref(packetReader));
     writerThread = std::thread(tryPacketWriter, std::ref(packetReader));
