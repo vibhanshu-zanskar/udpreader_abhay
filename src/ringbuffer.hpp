@@ -18,11 +18,13 @@ class RingBuffer
     RingBuffer() = delete;
     RingBuffer(std::size_t max_size, bool use_huge_pages, WriterCallBack writer_fn, ReaderCallBack reader_fn);
     ~RingBuffer();
+
     ::ssize_t free_space();
     std::size_t push(int fd, std::size_t max_bytes);
     std::size_t pop_all();
+    void reset();
 
-  protected:
+  private:
     static inline size_t write_available(size_t write_index, size_t read_index, size_t max_size)
     {
         size_t ret = read_index - write_index - 1;
@@ -54,12 +56,11 @@ class RingBuffer
         return ((max_size + 131072) + (page_size - 1)) & ~(page_size - 1);
     }
 
-  private:
     alignas(64) std::atomic<size_t> m_read_index;
     ReaderCallBack m_reader;
     WriterCallBack m_writer;
-    void *m_start;
-    void *m_end;
+    unsigned char *m_start;
+    unsigned char *m_end;
     size_t m_max_size;
     size_t m_allocated_size;
     bool m_use_huge_pages;

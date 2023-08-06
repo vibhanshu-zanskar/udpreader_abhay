@@ -3,51 +3,31 @@
 
 #include "ipinfo.hpp"
 #include "ringbuffer.hpp"
-#include <cstdint>
-#include <functional>
 #include <map>
-#include <string>
 #include <string_view>
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <vector>
 
 namespace znsreader
 {
-class PacketReader
-{
-  public:
-    PacketReader() = delete;
-    PacketReader(const std::string_view &address, uint16_t port);
-    ~PacketReader();
-    ssize_t receivePackets(unsigned char *buf, size_t bufLen);
-
-    PacketReader(const PacketReader &) = delete;
-    PacketReader &operator=(PacketReader const &) = delete;
-
-    PacketReader(PacketReader &&) = default;
-    PacketReader &operator=(PacketReader &&) = default;
-
-  private:
-    int m_sock;
-    uint16_t m_port;
-    std::string_view m_address;
-};
-
 class AggregatedPacketReader
 {
   public:
     AggregatedPacketReader() = delete;
-    AggregatedPacketReader(const std::map<short, StreamPortIPInfo> &, RingBuffer::WriterCallBack,
-                           RingBuffer::ReaderCallBack);
+    AggregatedPacketReader(const std::map<short, single_stream_info> &, bool, RingBuffer::ReaderCallBack);
     ~AggregatedPacketReader();
-    void write_packets_to_ringbuf();
-    void read_packets_from_ringbuf();
 
     AggregatedPacketReader(const AggregatedPacketReader &) = delete;
     AggregatedPacketReader &operator=(AggregatedPacketReader const &) = delete;
 
+    void write_packets_to_ringbuf();
+    void read_packets_from_ringbuf();
+
+    static std::size_t socket_to_ringbuf_writer(int fd, unsigned char *buf, std::size_t bufLen);
+
   private:
-    int CreateUDPSocket(const std::string_view &ipv4Addr, uint16_t udpPort);
+    int create_udp_socket(const std::string_view &ipv4Addr, uint16_t udpPort);
 
     int m_epollfd;
     std::vector<int> m_sockets;

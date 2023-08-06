@@ -17,7 +17,7 @@ class PacketToFileWriter
 {
   public:
     PacketToFileWriter() = delete;
-    PacketToFileWriter(const std::map<short, StreamPortIPInfo> &stream_info, bool write_to_pcap, bool append_existing);
+    PacketToFileWriter(const std::map<short, single_stream_info> &, bool write_to_pcap, bool append_existing);
     ~PacketToFileWriter();
     int ingest_packet(const unsigned char *packet, size_t packet_len);
 
@@ -45,9 +45,9 @@ class PacketToFileWriter
             throw std::runtime_error("stream id is not in map");
         }
 
-        std::string primary_ip = std::string(stream_info->second.m_primaryIP);
+        std::string primary_ip = std::string(stream_info->second.m_primary_ip);
         std::replace(primary_ip.begin(), primary_ip.end(), '.', '_');
-        auto full_name = primary_ip + "__" + std::to_string(stream_info->second.m_primaryPort) + "__"
+        auto full_name = primary_ip + "__" + std::to_string(stream_info->second.m_primary_port) + "__"
                          + std::to_string(stream_id) + "__" + date_today;
 
         if (m_write_to_pcap) {
