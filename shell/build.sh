@@ -33,7 +33,7 @@ fi
 
 mkdir -p ${BUILD_DIR}
 pushd $BUILD_DIR
-cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../..
+cmake -DCMAKE_CXX_COMPILER=g++-13 -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../..
 make
 popd
 

@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <functional>
 #include <iostream>
+#include <cstring>
 #include <iterator>
 #include <netinet/in.h>
 #include <stdexcept>
@@ -22,13 +23,13 @@ AggregatedPacketReader::AggregatedPacketReader(const std::map<short, single_stre
     : m_spsc_buffer(1024 * 1024 * 1024, use_huge_pages, socket_to_ringbuf_writer, reader_fn)
 {
     for (auto &one_stream : ip_port_config) {
-        int p_socket = create_udp_socket(one_stream.second.m_primary_ip, one_stream.second.m_primary_port);
-        if (p_socket < 0) {
-            perror("Failed to create socket");
-            throw std::runtime_error("Failed to create primary socket");
-        }
+        // int p_socket = create_udp_socket(one_stream.second.m_primary_ip, one_stream.second.m_primary_port);
+        // if (p_socket < 0) {
+        //     perror("Failed to create socket");
+        //     throw std::runtime_error("Failed to create primary socket");
+        // }
 
-        m_sockets.push_back(p_socket);
+        // m_sockets.push_back(p_socket);
 
         int s_socket = create_udp_socket(one_stream.second.m_secondary_ip, one_stream.second.m_secondary_port);
         if (s_socket < 0) {
@@ -85,6 +86,12 @@ void AggregatedPacketReader::write_packets_to_ringbuf()
         int activeFds = epoll_pwait2(m_epollfd, eventList, 1024, nullptr, nullptr);
         if (activeFds < 0) {
             perror("epoll_wait error:");
+            int error;
+            socklen_t errlen = sizeof(error);
+            if (getsockopt(m_epollfd, SOL_SOCKET, SO_ERROR, (void *)&error, &errlen) == 0)
+            {
+                std::cout << "error = " << strerror(error) << std::endl;
+            }
             throw std::runtime_error("epoll_wait error");
         } else {
             for (int i = 0; i < activeFds; i++) {

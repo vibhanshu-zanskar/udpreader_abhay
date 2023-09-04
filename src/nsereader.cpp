@@ -87,6 +87,11 @@ int SubscriptionManager::zns_set_thread_affinity(std::thread &target_thread, int
 
 }
 
+#include<iostream>
+#include"pcapwriter.hpp"
+
+znsreader::PacketToFileWriter pcapWrite(stream_id_net_config, true, false);
+
 std::fstream logFile("logs.txt");
 
 size_t ringbuf_packet_processor(const unsigned char *buf, std::size_t bufLen)
@@ -100,6 +105,13 @@ size_t ringbuf_packet_processor(const unsigned char *buf, std::size_t bufLen)
         logFile << full_packet->streamHdr.streamId << ":" << full_packet->streamHdr.seqNo << std::endl;
 
         if (full_packet->streamHdr.msgLen > 0) {
+            try{
+                pcapWrite.ingest_packet(packet, full_packet->streamHdr.msgLen);
+            }
+            catch(std::exception E){
+                std::cerr << E.what() << " " << full_packet->streamHdr.streamId << ":" << full_packet->streamHdr.seqNo << std::endl;
+                std::cout << E.what() << " " << full_packet->streamHdr.streamId << ":" << full_packet->streamHdr.seqNo << std::endl;
+            }
             packet += full_packet->streamHdr.msgLen;
         } else {
             throw std::runtime_error("Found invalid msgLen");
@@ -111,5 +123,16 @@ size_t ringbuf_packet_processor(const unsigned char *buf, std::size_t bufLen)
 
 int main()
 {
-    znsreader::SubscriptionManager zns_sub_manager(stream_id_net_config, true, ringbuf_packet_processor);
+    int retry = 0;
+    while(retry < 5){
+        try{
+            znsreader::SubscriptionManager zns_sub_manager(stream_id_net_config, false, ringbuf_packet_processor);
+        }
+        catch(std::exception E){
+            std::cerr << E.what() << std::endl;
+        }
+        ++retry;
+        std::cout << "Fail: " << retry << std::endl;
+    }
+    return 0;
 }

@@ -45,10 +45,12 @@ class PacketToFileWriter
             throw std::runtime_error("stream id is not in map");
         }
 
-        std::string primary_ip = std::string(stream_info->second.m_primary_ip);
+        std::string folder = "/mnt/packetCapture/";
+        std::string primary_ip = std::string(stream_info->second.m_secondary_ip);
         std::replace(primary_ip.begin(), primary_ip.end(), '.', '_');
-        auto full_name = primary_ip + "__" + std::to_string(stream_info->second.m_primary_port) + "__"
-                         + std::to_string(stream_id) + "__" + date_today;
+        auto full_name = folder + date_today + "/" + primary_ip + "__" 
+                         + std::to_string(stream_info->second.m_secondary_port) + "__"
+                         + std::to_string(stream_id);
 
         if (m_write_to_pcap) {
             return full_name + ".pcap";
