@@ -87,7 +87,10 @@ int SubscriptionManager::zns_set_thread_affinity(std::thread &target_thread, int
 
 }
 
-std::fstream logFile("logs.txt");
+#include<iostream>
+#include"pcapwriter.hpp"
+
+znsreader::PacketToFileWriter pcap_write(stream_id_net_config, true, false);
 
 size_t ringbuf_packet_processor(const unsigned char *buf, std::size_t bufLen)
 {
@@ -97,9 +100,14 @@ size_t ringbuf_packet_processor(const unsigned char *buf, std::size_t bufLen)
         const StreamPacket *full_packet = (StreamPacket *)packet;
         const StreamMsg *msgPtr = (StreamMsg *)(&full_packet->streamData);
 
-        logFile << full_packet->streamHdr.streamId << ":" << full_packet->streamHdr.seqNo << std::endl;
-
         if (full_packet->streamHdr.msgLen > 0) {
+            try{
+                pcap_write.ingest_packet(packet, full_packet->streamHdr.msgLen);
+            }
+            catch(std::exception E){
+                std::cerr << E.what() << " " << full_packet->streamHdr.streamId << ":" << full_packet->streamHdr.seqNo << std::endl;
+                std::cout << E.what() << " " << full_packet->streamHdr.streamId << ":" << full_packet->streamHdr.seqNo << std::endl;
+            }
             packet += full_packet->streamHdr.msgLen;
         } else {
             throw std::runtime_error("Found invalid msgLen");

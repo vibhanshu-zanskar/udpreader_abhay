@@ -37,7 +37,7 @@ class PacketToFileWriter
 
     inline std::string generate_filename(short stream_id)
     {
-        auto const time_today = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
+        auto const time_today  = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
         std::string date_today = std::format("{:%Y_%m_%d}", time_today);
 
         const auto &stream_info = m_stream_info.find(stream_id);
@@ -45,10 +45,12 @@ class PacketToFileWriter
             throw std::runtime_error("stream id is not in map");
         }
 
+        std::string baseFolder = "/mnt/packetCapture/";
         std::string primary_ip = std::string(stream_info->second.m_primary_ip);
         std::replace(primary_ip.begin(), primary_ip.end(), '.', '_');
-        auto full_name = primary_ip + "__" + std::to_string(stream_info->second.m_primary_port) + "__"
-                         + std::to_string(stream_id) + "__" + date_today;
+        auto full_name = baseFolder + date_today + "/" + primary_ip + "__" +
+                         std::to_string(stream_info->second.m_primary_port) + "__" +
+                         std::to_string(stream_id) + "__" + date_today;
 
         if (m_write_to_pcap) {
             return full_name + ".pcap";
