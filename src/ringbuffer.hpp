@@ -61,6 +61,7 @@ class RingBuffer
     WriterCallBack m_writer;
     unsigned char *m_start;
     unsigned char *m_end;
+    unsigned char *m_wrap_around_buffer;
     size_t m_max_size;
     size_t m_allocated_size;
     bool m_use_huge_pages;

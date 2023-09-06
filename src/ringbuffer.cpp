@@ -25,11 +25,19 @@ RingBuffer::RingBuffer(std::size_t max_size, bool use_huge_pages, WriterCallBack
         if (m_start == MAP_FAILED) {
             throw std::runtime_error("Failed to mmap");
         }
+        m_wrap_around_buffer = (unsigned char *)::mmap(nullptr, max_size, ZNS_MMAP_PERMS, ZNS_MMAP_FLAGS, -1, 0);
+        if(m_wrap_around_buffer == MAP_FAILED){
+            throw std::runtime_error("Failed to mmap wrap around buffer");
+        }
     } else {
         // TODO : posix_memalign?
         m_start = (unsigned char *)::malloc(rounded_size);
         if (m_start == nullptr) {
             throw std::runtime_error("Failed to malloc");
+        }
+        m_wrap_around_buffer = (unsigned char *)::malloc(max_size);
+        if(m_wrap_around_buffer == nullptr){
+            throw std::runtime_error("Failed to malloc wrap around buffer");
         }
     }
 
@@ -105,14 +113,10 @@ std::size_t RingBuffer::pop_all()
         const size_t count1 = output_count - count0;
 
         // TODO : make one at begining and cache.
-        void *temp_buffer;
-        while((temp_buffer = ::malloc(count0 + count1)) == nullptr)
-            std::this_thread::sleep_for(std::chrono::microseconds(1));
-        ::memcpy(temp_buffer, (unsigned char *)m_start + read_index, count0);
-        ::memcpy((unsigned char *)temp_buffer + count0, (const unsigned char *)m_start, count1);
+        ::memcpy(m_wrap_around_buffer, (unsigned char *)m_start + read_index, count0);
+        ::memcpy((unsigned char *)m_wrap_around_buffer + count0, (const unsigned char *)m_start, count1);
 
-        m_reader((const unsigned char *)temp_buffer, (count0 + count1));
-        ::free(temp_buffer);
+        m_reader((const unsigned char *)m_wrap_around_buffer, (count0 + count1));
 
         new_read_index -= m_max_size;
     } else {

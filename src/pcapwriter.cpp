@@ -127,12 +127,12 @@ int PacketToFileWriter::ingest_packet(const unsigned char *packet, size_t packet
             ip_hdr.ip_hl = 5;
             ip_hdr.ip_v = 4;
             ip_hdr.ip_p = IPPROTO_UDP;
-            ip_hdr.ip_dst.s_addr = inet_addr(std::string(m_stream_info.find(stream_id)->second.m_primary_ip).c_str());
+            ip_hdr.ip_dst.s_addr = inet_addr(std::string(m_stream_info.find(stream_id)->second.m_secondary_ip).c_str());
             ::write(active_fd, &ip_hdr, sizeof(ip_hdr));
         }
 
         {
-            udp_hdr.dest = m_stream_info.find(stream_id)->second.m_primary_port;
+            udp_hdr.dest = m_stream_info.find(stream_id)->second.m_secondary_port;
             udp_hdr.len = sizeof(udp_hdr) + packet_len;
 
             ::write(active_fd, &udp_hdr, sizeof(udp_hdr));
